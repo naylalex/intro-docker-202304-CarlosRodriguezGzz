@@ -1,0 +1,51 @@
+version: '3'
+networks:
+  my_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.238.0/24
+
+services:
+  db:
+    image: postgres
+    container_name: db
+    networks:
+      - my_network
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./words.sql:/docker-entrypoint-initdb.d/words.sql
+    expose:
+      - "5432/tcp"
+
+
+  dispatcher:
+    build:
+      context: .
+      target: build
+      dockerfile: Dockerfile.dispatcher
+    image: web
+    container_name: web
+    networks:
+      - my_network
+    ports:
+      - 80:80
+    depends_on:
+      - db
+
+
+  words:
+    build:
+      context: .
+      target: build
+      dockerfile: Dockerfile.words
+    image: words
+    container_name: words
+    networks:
+      - my_network
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
